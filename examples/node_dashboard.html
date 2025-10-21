@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Danh Sách Công Việc</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* CSS Reset và biến cơ bản */
+      :root {
+        --blue-main: #3b5998; /* Màu xanh đậm chủ đạo */
+        --blue-light: #5d9cec; /* Màu xanh sáng cho nút */
+        --text-dark: #333;
+        --text-light: #fff;
+        --border-color: #ddd;
+        --bg-light: #f9f9f9;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Roboto", sans-serif;
+      }
+
+      body {
+        background-color: var(--bg-light);
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 40px 20px;
+        min-height: 100vh;
+      }
+
+      .dashboard-container {
+        width: 100%;
+        max-width: 700px; /* Chiều rộng tối đa */
+        background-color: var(--text-light);
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      /* Phần Header */
+      .header {
+        background-color: var(--blue-main);
+        color: var(--text-light);
+        padding: 25px 30px;
+        text-align: center;
+        position: relative;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .header .node-info {
+        background-color: #c9302c; /* Màu đỏ cho node chính */
+        color: var(--text-light);
+        padding: 5px 15px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 5px;
+      }
+
+      .header .node-info span {
+        margin-right: 5px;
+        font-size: 16px; /* Biểu tượng nhỏ */
+      }
+
+      /* Phần Nội dung chính */
+      .content {
+        padding: 30px;
+      }
+
+      /* Tiêu đề phần (ví dụ: Thêm Công Việc) */
+      .section-title {
+        color: var(--blue-main);
+        font-size: 20px;
+        font-weight: 500;
+        margin-top: 20px;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 5px;
+      }
+
+      /* Bố cục form */
+      .form-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      /* Input text */
+      .input-text {
+        flex-grow: 1;
+        padding: 10px 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 16px;
+      }
+
+      .input-textarea {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 16px;
+        resize: vertical; /* Cho phép thay đổi kích thước theo chiều dọc */
+        min-height: 100px;
+        margin-bottom: 15px;
+      }
+
+      /* Nút chung */
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--text-light);
+        font-weight: 500;
+        transition: background-color 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        font-size: 16px;
+      }
+
+      .btn-primary {
+        background-color: var(--blue-light);
+      }
+
+      .btn-primary:hover {
+        background-color: #4a8dfc;
+      }
+
+      /* Nút Thêm (nhỏ) */
+      .btn-add {
+        width: 90px;
+      }
+
+      /* Danh sách công việc (Title với Badge) */
+      .tasks-list-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .tasks-list-header .badge {
+        background-color: var(--blue-light);
+        color: var(--text-light);
+        padding: 3px 8px;
+        border-radius: 50%;
+        font-size: 14px;
+        font-weight: 700;
+        margin-left: 10px;
+      }
+
+      /* Nội dung khi không có công việc */
+      .empty-state {
+        text-align: center;
+        color: #888;
+        padding: 50px 0;
+      }
+
+      .empty-state i {
+        font-size: 40px;
+        color: #ccc;
+        display: block;
+        margin-bottom: 10px;
+      }
+
+      /* Phần Footer */
+      .footer {
+        text-align: center;
+        padding: 15px;
+        border-top: 1px solid #eee;
+        color: #aaa;
+        font-size: 14px;
+        background-color: var(--bg-light);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="header">
+        <h1>&#x2714; Danh Sách Công Việc</h1>
+        <div class="node-info">
+          <span>&#9889;</span>
+          Node Chính:
+          <a
+            href="http://127.0.0.1:4000"
+            style="color: white; text-decoration: none; margin-left: 5px"
+            >http://127.0.0.1:4000</a
+          >
+        </div>
+      </div>
+
+      <div class="content">
+        <h2 class="section-title">Thêm Công Việc</h2>
+        <div class="form-group">
+          <input
+            type="text"
+            class="input-text"
+            placeholder="Tên công việc..."
+          />
+          <button class="btn btn-primary btn-add"><span>+</span> Thêm</button>
+        </div>
+
+        <h2 class="section-title">Thêm Nhiều Công Việc</h2>
+        <textarea
+          class="input-textarea"
+          placeholder="Nhập mỗi công việc trên một dòng..."
+        ></textarea>
+        <button
+          class="btn btn-primary"
+          style="width: 100%; margin-bottom: 30px"
+        >
+          <span>+</span> Thêm Nhiều Công Việc
+        </button>
+
+        <div class="tasks-list-header">
+          <h2 class="section-title" style="margin: 0; border: none">
+            Danh Sách Công Việc
+          </h2>
+          <div class="badge">0</div>
+        </div>
+
+        <div class="empty-state">
+          <i style="font-style: normal">&#128193;</i>
+          Chưa có công việc nào. Hãy thêm công việc mới!
+        </div>
+      </div>
+
+      <div class="footer">PupDB Todo List © 2025</div>
+    </div>
+    <script>
+      const portsToCheck = [4000, 4001];
+      let apiBase = null;
+      let currentLeader = null;
+
+      async function findAliveNode() {
+        for (let port of portsToCheck) {
+          try {
+            const res = await fetch(`http://127.0.0.1:${port}/status`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.leader) {
+                apiBase = `http://127.0.0.1:${port}`;
+                currentLeader = data.leader;
+                updateLeaderDisplay();
+                return;
+              }
+            }
+          } catch (e) {}
+        }
+        document.querySelector(".node-info a").textContent =
+          "Không kết nối được!";
+      }
+
+      function updateLeaderDisplay() {
+        const nodeLink = document.querySelector(".node-info a");
+        nodeLink.href = currentLeader;
+        nodeLink.textContent = currentLeader;
+      }
+
+      async function refreshLeader() {
+        if (!apiBase) return findAliveNode();
+        try {
+          const res = await fetch(`${apiBase}/status`);
+          const data = await res.json();
+          if (data.leader !== currentLeader) {
+            currentLeader = data.leader;
+            updateLeaderDisplay();
+          }
+        } catch {
+          apiBase = null;
+          findAliveNode();
+        }
+      }
+
+      async function loadJobs() {
+        if (!apiBase) return;
+        const res = await fetch(`${apiBase}/jobs`);
+        const jobs = await res.json();
+        const list = document.querySelector(".empty-state");
+        if (Object.keys(jobs).length === 0) {
+          list.innerHTML = "Chưa có công việc nào. Hãy thêm công việc mới!";
+        } else {
+          list.innerHTML = Object.entries(jobs)
+            .map(([k, v]) => `<div>${k} - ${v}</div>`)
+            .join("");
+        }
+      }
+
+      async function addJob() {
+        const input = document.querySelector(".input-text");
+        const job = input.value.trim();
+        if (!job || !apiBase)
+          return alert("Vui lòng nhập công việc hoặc chờ node!");
+        await fetch(`${apiBase}/set`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: job, value: "pending" }),
+        });
+        input.value = "";
+        loadJobs();
+      }
+
+      document.querySelector(".btn-add").onclick = addJob;
+      setInterval(refreshLeader, 3000);
+      setInterval(loadJobs, 4000);
+      findAliveNode();
+    </script>
+  </body>
+</html>
