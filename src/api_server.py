@@ -7,13 +7,17 @@ from datetime import datetime
 from flask_cors import CORS
 from src.cluster_manager import ClusterManager
 
-def create_app(port, peers):
+def create_app(port, peers, all_nodes=None):
     app = Flask(__name__, static_folder="../examples", static_url_path="/")
     CORS(app)
     
     # Load PickleDB
     db = pickledb.load(f"node_{port}.db", auto_dump=True)
-    cluster = ClusterManager(port, peers)
+
+    if all_nodes is None:
+        all_nodes = peers.copy()
+
+    cluster = ClusterManager(port, peers, all_nodes)
 
     # ============ FRONTEND =============
     @app.route("/")
@@ -31,28 +35,23 @@ def create_app(port, peers):
                 task_data = db.get(key)
                 if task_data:
                     tasks.append(task_data)
-        
-        # Sắp xếp theo thời gian tạo (mới nhất trước)
         tasks.sort(key=lambda x: x.get('created_at', ''), reverse=True)
         return jsonify({"tasks": tasks})
 
     @app.route("/tasks", methods=["POST"])
     def create_task():
-        """Tạo task mới - chỉ leader mới được tạo"""
+        """Tạo task mới — chỉ leader mới ghi"""
         data = request.get_json()
         title = data.get("title")
-        
         if not title:
             return jsonify({"error": "title required"}), 400
-        
-        # Kiểm tra xem node này có phải leader không
+
         if not cluster.is_leader:
-            return jsonify({
-                "error": "not leader", 
-                "leader": cluster.current_leader
-            }), 403
-        
-        # Tạo task mới
+            leader_url = cluster.current_leader or f"http://127.0.0.1:{port}"
+            if not str(leader_url).startswith("http"):
+                leader_url = f"http://127.0.0.1:{leader_url}"
+            return jsonify({"error": "not leader", "leader": leader_url}), 403
+
         task_id = str(uuid.uuid4())
         task = {
             "id": task_id,
@@ -60,92 +59,51 @@ def create_app(port, peers):
             "completed": False,
             "created_at": datetime.now().isoformat()
         }
-        
-        # Lưu vào DB
-        key = f"task_{task_id}"
-        db.set(key, task)
-        
-        # Replicate sang followers
-        cluster.replicate_to_followers(key, task)
-        
+
+        db.set(f"task_{task_id}", task)
+        cluster.replicate_to_followers(f"task_{task_id}", task)
         return jsonify(task), 201
 
     @app.route("/tasks/<task_id>", methods=["PUT"])
     def update_task(task_id):
-        """Cập nhật task - chỉ leader mới được update"""
+        """Cập nhật task"""
         if not cluster.is_leader:
-            return jsonify({
-                "error": "not leader", 
-                "leader": cluster.current_leader
-            }), 403
-        
+            leader_url = cluster.current_leader or f"http://127.0.0.1:{port}"
+            if not str(leader_url).startswith("http"):
+                leader_url = f"http://127.0.0.1:{leader_url}"
+            return jsonify({"error": "not leader", "leader": leader_url}), 403
+
         key = f"task_{task_id}"
         task = db.get(key)
-        
         if not task:
             return jsonify({"error": "task not found"}), 404
-        
-        # Cập nhật thông tin task
+
         data = request.get_json()
         if "completed" in data:
             task["completed"] = data["completed"]
         if "title" in data:
             task["title"] = data["title"]
-        
-        # Lưu vào DB
+
         db.set(key, task)
-        
-        # Replicate sang followers
         cluster.replicate_to_followers(key, task)
-        
         return jsonify(task)
 
     @app.route("/tasks/<task_id>", methods=["DELETE"])
     def delete_task(task_id):
-        """Xóa task - chỉ leader mới được xóa"""
+        """Xóa task"""
         if not cluster.is_leader:
-            return jsonify({
-                "error": "not leader", 
-                "leader": cluster.current_leader
-            }), 403
-        
+            leader_url = cluster.current_leader or f"http://127.0.0.1:{port}"
+            if not str(leader_url).startswith("http"):
+                leader_url = f"http://127.0.0.1:{leader_url}"
+            return jsonify({"error": "not leader", "leader": leader_url}), 403
+
         key = f"task_{task_id}"
-        task = db.get(key)
-        
-        if not task:
+        if not db.exists(key):
             return jsonify({"error": "task not found"}), 404
-        
-        # Xóa khỏi DB
+
         db.rem(key)
-        
-        # Replicate việc xóa sang followers (gửi value=None)
         cluster.replicate_to_followers(key, None)
-        
         return jsonify({"status": "deleted"})
-
-    # ============ LEGACY API =============
-    @app.route("/set", methods=["POST"])
-    def set_value():
-        """API cũ - set key-value"""
-        data = request.get_json()
-        key, value = data.get("key"), data.get("value", "")
-        
-        if cluster.is_leader:
-            db.set(key, value)
-            cluster.replicate_to_followers(key, value)
-            return jsonify({"status": "ok", "role": "leader"})
-        else:
-            return jsonify({
-                "error": "not leader", 
-                "leader": cluster.current_leader
-            }), 403
-
-    @app.route("/jobs")
-    def jobs():
-        """API cũ - lấy tất cả jobs"""
-        all_jobs = db.getall()
-        result = {k: db.get(k) for k in all_jobs}
-        return jsonify(result)
 
     # ============ REPLICATION =============
     @app.route("/replicate", methods=["POST"])
@@ -154,25 +112,22 @@ def create_app(port, peers):
         data = request.get_json()
         key = data["key"]
         value = data["value"]
-        
+
         if value is None:
-            # Xóa key
             if db.exists(key):
                 db.rem(key)
-                print(f"[FOLLOWER {port}] Xóa key={key}")
         else:
-            # Set key-value
             db.set(key, value)
-            print(f"[FOLLOWER {port}] Nhận bản sao key={key}")
-        
+
         return jsonify({"status": "replicated"})
 
-    # ============ CLUSTER MANAGEMENT =============
+    # ============ HEARTBEAT & CLUSTER MGMT ============
     @app.route("/heartbeat")
     def heartbeat():
         """Nhận heartbeat từ leader"""
-        cluster.last_heartbeat = time.time()
-        return jsonify({"status": "alive", "port": port})
+        info = cluster.receive_heartbeat()
+        cluster.current_leader = request.remote_addr or cluster.current_leader
+        return jsonify(info)
 
     @app.route("/status")
     def status():
@@ -186,17 +141,16 @@ def create_app(port, peers):
 
     @app.route("/health")
     def health():
-        """Health check endpoint"""
+        """Health check"""
         return jsonify({
             "status": "ok",
             "port": cluster.port,
             "is_leader": cluster.is_leader
         })
 
-    # ============ CLUSTER INFO =============
     @app.route("/cluster/status")
     def cluster_status():
-        """Trả về thông tin toàn bộ cluster"""
+        """Trả thông tin toàn cluster"""
         return jsonify({
             "leader": cluster.current_leader,
             "followers": cluster.peers,
@@ -206,5 +160,4 @@ def create_app(port, peers):
 
     # Khởi động election monitor
     cluster.start_election_monitor()
-    
     return app, cluster

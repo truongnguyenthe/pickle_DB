@@ -20,6 +20,7 @@
         --success: #06d6a0;
         --badge-blue: #4361ee;
         --warning: #f0ad4e;
+        --edit-btn-color: #17a2b8; /* New color for edit */
       }
 
       * {
@@ -215,7 +216,7 @@
 
       /* Buttons */
       .btn {
-        padding: 14px 28px;
+        padding: 12px 24px; /* Slightly smaller for better fit */
         border: none;
         border-radius: 8px;
         cursor: pointer;
@@ -227,12 +228,13 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); /* Reduced shadow */
       }
 
       .btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+        box-shadow: none; /* No shadow when disabled */
       }
 
       .btn-primary {
@@ -240,8 +242,8 @@
       }
 
       .btn-primary:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(67, 97, 238, 0.4);
+        transform: translateY(-1px); /* Less dramatic hover effect */
+        box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
       }
 
       .btn-primary::before {
@@ -265,7 +267,28 @@
 
       .btn-danger:hover:not(:disabled) {
         background-color: #d62828;
-        transform: translateY(-2px);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(230, 57, 70, 0.3);
+      }
+
+      /* New style for Edit button */
+      .btn-edit {
+        background-color: var(--edit-btn-color); /* Info color */
+        padding: 10px 20px;
+        font-size: 14px;
+      }
+
+      .btn-edit:hover:not(:disabled) {
+        background-color: #138496;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+      }
+
+      /* Disabled Edit button for completed tasks */
+      .task-item.completed .btn-edit:not(:hover) {
+        background-color: #6c757d; /* Gray out when completed */
+        cursor: not-allowed;
+        opacity: 0.8;
       }
 
       /* Tasks List Header */
@@ -309,17 +332,20 @@
         font-size: 15px;
         font-weight: 500;
         transition: all 0.3s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Added subtle shadow */
       }
 
       .filter-btn:hover {
         border-color: var(--primary-blue);
         color: var(--primary-blue);
+        box-shadow: 0 3px 6px rgba(67, 97, 238, 0.1);
       }
 
       .filter-btn.active {
         background: linear-gradient(135deg, #4361ee 0%, #5a7af8 100%);
         color: white;
         border-color: var(--primary-blue);
+        box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
       }
 
       /* Task Items */
@@ -328,7 +354,7 @@
         align-items: center;
         gap: 15px;
         padding: 18px 20px;
-        border: 2px solid var(--border-color);
+        border: 1px solid var(--border-color); /* Thinner border */
         border-radius: 12px;
         margin-bottom: 12px;
         background-color: white;
@@ -342,7 +368,8 @@
 
       .task-item.completed {
         background-color: #f8f9fa;
-        opacity: 0.7;
+        opacity: 0.8; /* Slightly less opaque */
+        border-left: 5px solid var(--success); /* Green line for completed */
       }
 
       .task-checkbox {
@@ -524,10 +551,10 @@
           </button>
           <button
             class="btn btn-danger"
-            onclick="clearCompleted()"
+            onclick="clearAllTasks()"
             style="margin-left: auto"
           >
-            Xóa Đã Hoàn Thành
+            Xóa Tất Cả
           </button>
         </div>
 
@@ -545,7 +572,11 @@
       // Cấu hình Nodes
       const NODES = {
         primary: "http://127.0.0.1:4000",
-        secondary: "http://127.0.0.1:4001",
+        followers: [
+          "http://127.0.0.1:4001",
+          "http://127.0.0.1:4002",
+          "http://127.0.0.1:4003",
+        ],
       };
 
       let currentNode = NODES.primary;
@@ -567,22 +598,29 @@
       // Kiểm tra sức khỏe của nodes
       async function checkNodeHealth() {
         const primaryStatus = await checkNode(NODES.primary);
-        const secondaryStatus = await checkNode(NODES.secondary);
 
-        // Tự động failover nếu primary die
-        if (
-          !primaryStatus &&
-          secondaryStatus &&
-          currentNode === NODES.primary
-        ) {
-          await performFailover();
-        } else if (primaryStatus && currentNode === NODES.secondary) {
-          // Failback về primary khi nó hoạt động lại
+        // Nếu primary sống → failback nếu đang ở follower
+        if (primaryStatus && currentNode !== NODES.primary) {
           await performFailback();
+          return;
+        }
+
+        // Nếu primary chết → thử lần lượt followers
+        if (!primaryStatus && currentNode === NODES.primary) {
+          for (const follower of NODES.followers) {
+            const status = await checkNode(follower);
+            if (status) {
+              await performFailover(follower);
+              return;
+            }
+          }
+
+          // Nếu không node nào sống
+          console.warn("🚨 Không có node nào khả dụng!");
+          showFailoverAlert("⚠️ Tất cả node đều không khả dụng!");
         }
 
         updateCurrentNodeUI();
-        return { primaryStatus, secondaryStatus };
       }
 
       async function checkNode(url) {
@@ -614,27 +652,16 @@
         }
       }
 
-      async function performFailover() {
-        console.log("🔄 Performing failover to secondary node...");
+      async function performFailover(targetNode) {
+        console.log(`🔄 Performing failover to ${targetNode}...`);
         isFailover = true;
-        currentNode = NODES.secondary;
+        currentNode = targetNode;
 
-        // Redirect sang port 4001
-        const currentPort = window.location.port;
-        if (currentPort === "4000") {
-          console.log("🔄 Redirecting to port 4001...");
-          window.location.href = "http://127.0.0.1:4001/";
-          return;
-        }
-
-        // Show failover alert
         const alertEl = document.getElementById("failoverAlert");
         const messageEl = document.getElementById("failoverMessage");
-        messageEl.textContent =
-          "⚠️ Node Chính (4000) không khả dụng! Đã chuyển sang Node Phụ (4001)";
+        messageEl.textContent = ` Node chính không khả dụng! Đã chuyển sang ${targetNode}`;
         alertEl.classList.add("show");
 
-        // Update UI
         updateCurrentNodeUI();
         await loadTasks();
 
@@ -648,33 +675,9 @@
         isFailover = false;
         currentNode = NODES.primary;
 
-        // Redirect về port 4000 nếu đang ở port 4001
-        const currentPort = window.location.port;
-        if (currentPort === "4001") {
-          console.log("✅ Redirecting back to port 4000...");
-          window.location.href = "http://127.0.0.1:4000/";
-          return;
-        }
-
-        // Show failback notification
-        const alertEl = document.getElementById("failoverAlert");
-        const messageEl = document.getElementById("failoverMessage");
-        messageEl.textContent = "✅ Node Chính (4000) đã hoạt động trở lại!";
-        alertEl.classList.add("show");
-        alertEl.style.backgroundColor = "#d4edda";
-        alertEl.style.borderColor = "#c3e6cb";
-        alertEl.style.color = "#155724";
-
-        // Update UI
+        showFailoverAlert("✅ Node chính (4000) đã hoạt động trở lại!");
         updateCurrentNodeUI();
         await loadTasks();
-
-        setTimeout(() => {
-          alertEl.classList.remove("show");
-          alertEl.style.backgroundColor = "";
-          alertEl.style.borderColor = "";
-          alertEl.style.color = "";
-        }, 5000);
       }
 
       function startHealthCheck() {
@@ -706,28 +709,44 @@
             signal: AbortSignal.timeout(5000),
           });
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+          // Nếu node follower trả về lỗi 403 (not leader)
+          if (response.status === 403) {
+            let data = {};
+            try {
+              data = await response.json();
+            } catch (_) {}
+
+            // Nếu backend có gửi địa chỉ leader → dùng nó
+            if (data.leader) {
+              currentNode = data.leader.startsWith("http")
+                ? data.leader
+                : `http://${data.leader}`;
+            } else {
+              // Nếu backend không gửi leader, fallback về node chính
+              console.warn(
+                "⚠️ Follower không báo leader, fallback về node 4000"
+              );
+              currentNode = NODES.primary;
+            }
+
+            updateCurrentNodeUI();
+            console.warn(`🔁 Chuyển sang ${currentNode} và gửi lại request...`);
+
+            const retry = await fetch(`${currentNode}${endpoint}`, options);
+            if (!retry.ok)
+              throw new Error(
+                `HTTP error ${retry.status} khi retry sang leader`
+              );
+            return await retry.json();
           }
+
+          // Nếu không lỗi → trả kết quả bình thường
+          if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
           return await response.json();
         } catch (error) {
-          console.error(`Request failed on ${currentNode}:`, error);
-
-          // Thử failover nếu request thất bại
-          if (currentNode === NODES.primary) {
-            const secondaryOnline = await checkNode(NODES.secondary);
-            if (secondaryOnline) {
-              await performFailover();
-              // Retry request on secondary
-              const response = await fetch(
-                `${currentNode}${endpoint}`,
-                options
-              );
-              return await response.json();
-            }
-          }
-
+          console.error(`❌ Request thất bại tại ${currentNode}:`, error);
+          showMessage("Không thể kết nối đến node!", "error");
           throw error;
         }
       }
@@ -784,6 +803,14 @@
               task.created_at
             ).toLocaleString("vi-VN")}</div>
             </div>
+            <button 
+              class="btn btn-edit" 
+              onclick="editTask('${task.id}')" 
+              data-title="Sửa"
+              ${task.completed ? "disabled" : ""}
+            >
+              Sửa
+            </button>
             <button class="btn btn-danger" onclick="deleteTask('${task.id}')">
               Xóa
             </button>
@@ -877,30 +904,60 @@
         }
       }
 
-      async function clearCompleted() {
-        const completedTasks = tasks.filter((t) => t.completed);
-        if (completedTasks.length === 0) {
-          showMessage("Không có công việc đã hoàn thành để xóa!", "error");
+      async function editTask(id) {
+        const task = tasks.find((t) => t.id === id);
+        if (!task) return;
+
+        // Logic to prevent editing completed tasks
+        if (task.completed) {
+          showMessage("Không thể sửa công việc đã hoàn thành!", "error");
+          return;
+        }
+
+        const newTitle = prompt("Nhập tên công việc mới:", task.title);
+        if (newTitle === null || newTitle.trim() === "") {
+          showMessage("Tên công việc không hợp lệ!", "error");
+          return;
+        }
+
+        try {
+          await apiRequest(`/tasks/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: newTitle.trim() }),
+          });
+
+          showMessage("Đã cập nhật công việc thành công!");
+          await loadTasks();
+        } catch (error) {
+          showMessage("Lỗi khi sửa công việc!", "error");
+        }
+      }
+
+      async function clearAllTasks() {
+        if (tasks.length === 0) {
+          showMessage("Không có công việc nào để xóa!", "error");
           return;
         }
 
         if (
           !confirm(
-            `Bạn có chắc muốn xóa ${completedTasks.length} công việc đã hoàn thành?`
+            `Bạn có chắc chắn muốn xóa TẤT CẢ ${tasks.length} công việc? Thao tác này không thể hoàn tác!`
           )
         )
           return;
 
         try {
-          const promises = completedTasks.map((task) =>
+          // Logic to delete ALL tasks
+          const promises = tasks.map((task) =>
             apiRequest(`/tasks/${task.id}`, { method: "DELETE" })
           );
 
           await Promise.all(promises);
-          showMessage(`Đã xóa ${completedTasks.length} công việc!`);
+          showMessage(`Đã xóa tất cả ${tasks.length} công việc!`);
           await loadTasks();
         } catch (error) {
-          showMessage("Lỗi khi xóa công việc!", "error");
+          showMessage("Lỗi khi xóa tất cả công việc!", "error");
         }
       }
 
