@@ -171,10 +171,7 @@ lsof -ti:4001 | xargs kill -9
 - Kiểm tra logs: `tail -f logs/node_*.log`
 - Kiểm tra network giữa các nodes
 
-## 📄 License
+## 👨‍💻 Các thành viên nhóm
 
-MIT License
-
-## 👨‍💻 Author
-
-PickleDB Distributed System © 2025
+Nguyễn Thế Trường - 22010212
+Nguyễn Thế Trường An - 22010253
