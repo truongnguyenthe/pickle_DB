@@ -173,5 +173,6 @@ lsof -ti:4001 | xargs kill -9
 
 ## 👨‍💻 Các thành viên nhóm
 
-Nguyễn Thế Trường - 22010212
-Nguyễn Thế Trường An - 22010253
+- Nguyễn Thế Trường - 22010212
+
+- Nguyễn Thế Trường An - 22010253
