@@ -3,20 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Danh Sách Công Việc</title>
+    <title>Danh Sách Công Việc - PickleDB</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <style>
-      /* CSS Reset và biến cơ bản */
       :root {
-        --blue-main: #3b5998; /* Màu xanh đậm chủ đạo */
-        --blue-light: #5d9cec; /* Màu xanh sáng cho nút */
-        --text-dark: #333;
-        --text-light: #fff;
-        --border-color: #ddd;
-        --bg-light: #f9f9f9;
+        --primary-blue: #4361ee;
+        --primary-red: #e63946;
+        --primary-green: #06d6a0;
+        --text-dark: #2b2d42;
+        --text-light: #ffffff;
+        --bg-light: #f8f9fa;
+        --border-color: #dee2e6;
+        --success: #06d6a0;
+        --badge-blue: #4361ee;
+        --warning: #f0ad4e;
       }
 
       * {
@@ -27,299 +30,906 @@
       }
 
       body {
-        background-color: var(--bg-light);
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 40px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
+        padding: 0;
+        margin: 0;
       }
 
       .dashboard-container {
-        width: 100%;
-        max-width: 700px; /* Chiều rộng tối đa */
-        background-color: var(--text-light);
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        max-width: 920px;
+        margin: 0 auto;
+        background-color: var(--bg-light);
+        min-height: 100vh;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
       }
 
-      /* Phần Header */
+      /* Header */
       .header {
-        background-color: var(--blue-main);
+        background: linear-gradient(135deg, #4361ee 0%, #5a7af8 100%);
         color: var(--text-light);
-        padding: 25px 30px;
+        padding: 35px 40px;
         text-align: center;
-        position: relative;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
 
       .header h1 {
-        font-size: 28px;
+        font-size: 36px;
         font-weight: 700;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
       }
 
-      .header .node-info {
-        background-color: #c9302c; /* Màu đỏ cho node chính */
+      .header h1::before {
+        content: "✓";
+        font-size: 40px;
+        font-weight: 700;
+        border: 3px solid white;
+        border-radius: 6px;
+        padding: 2px 8px;
+      }
+
+      .cluster-status {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+      }
+
+      .node-info {
+        background-color: var(--primary-red);
         color: var(--text-light);
-        padding: 5px 15px;
-        border-radius: 4px;
+        padding: 12px 24px;
+        border-radius: 8px;
         display: inline-flex;
         align-items: center;
-        font-size: 14px;
+        gap: 10px;
+        font-size: 16px;
         font-weight: 500;
-        margin-top: 5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s;
       }
 
-      .header .node-info span {
-        margin-right: 5px;
-        font-size: 16px; /* Biểu tượng nhỏ */
+      .node-info.standby {
+        background-color: var(--warning);
       }
 
-      /* Phần Nội dung chính */
-      .content {
-        padding: 30px;
+      .node-info.active {
+        background-color: var(--primary-green);
+        animation: pulse 2s infinite;
       }
 
-      /* Tiêu đề phần (ví dụ: Thêm Công Việc) */
-      .section-title {
-        color: var(--blue-main);
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.85;
+        }
+      }
+
+      .node-info::before {
+        content: "🗄";
         font-size: 20px;
-        font-weight: 500;
-        margin-top: 20px;
-        margin-bottom: 15px;
-        border-bottom: 2px solid #eee;
-        padding-bottom: 5px;
       }
 
-      /* Bố cục form */
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+      }
+
+      .status-indicator.online {
+        background-color: #5cb85c;
+        box-shadow: 0 0 8px #5cb85c;
+      }
+
+      .status-indicator.offline {
+        background-color: #999;
+      }
+
+      .failover-alert {
+        background-color: #fff3cd;
+        border: 2px solid #ffc107;
+        color: #856404;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin: 20px 40px 0;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+      }
+
+      .failover-alert.show {
+        display: flex;
+      }
+
+      .failover-alert::before {
+        content: "⚠️";
+        font-size: 24px;
+      }
+
+      /* Content */
+      .content {
+        padding: 40px;
+        background-color: white;
+      }
+
+      .section-title {
+        color: var(--primary-blue);
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 3px solid var(--primary-blue);
+        display: inline-block;
+      }
+
+      /* Form Single Task */
       .form-group {
         display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
+        gap: 12px;
+        margin-bottom: 50px;
       }
 
-      /* Input text */
       .input-text {
         flex-grow: 1;
-        padding: 10px 15px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
+        padding: 14px 20px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
         font-size: 16px;
+        transition: all 0.3s;
+      }
+
+      .input-text:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
       }
 
       .input-textarea {
         width: 100%;
-        padding: 10px 15px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
+        padding: 14px 20px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
         font-size: 16px;
-        resize: vertical; /* Cho phép thay đổi kích thước theo chiều dọc */
-        min-height: 100px;
+        resize: vertical;
+        min-height: 120px;
         margin-bottom: 15px;
+        transition: all 0.3s;
       }
 
-      /* Nút chung */
+      .input-textarea:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+      }
+
+      /* Buttons */
       .btn {
-        padding: 10px 20px;
+        padding: 14px 28px;
         border: none;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: pointer;
         color: var(--text-light);
-        font-weight: 500;
-        transition: background-color 0.2s;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 5px;
-        font-size: 16px;
+        gap: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       .btn-primary {
-        background-color: var(--blue-light);
+        background: linear-gradient(135deg, #4361ee 0%, #5a7af8 100%);
       }
 
-      .btn-primary:hover {
-        background-color: #4a8dfc;
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(67, 97, 238, 0.4);
       }
 
-      /* Nút Thêm (nhỏ) */
-      .btn-add {
-        width: 90px;
+      .btn-primary::before {
+        content: "+";
+        font-size: 20px;
+        font-weight: 700;
       }
 
-      /* Danh sách công việc (Title với Badge) */
+      .btn-full {
+        width: 100%;
+        margin-bottom: 50px;
+        padding: 16px 28px;
+        font-size: 18px;
+      }
+
+      .btn-danger {
+        background-color: var(--primary-red);
+        padding: 10px 20px;
+        font-size: 14px;
+      }
+
+      .btn-danger:hover:not(:disabled) {
+        background-color: #d62828;
+        transform: translateY(-2px);
+      }
+
+      /* Tasks List Header */
       .tasks-list-header {
         display: flex;
         align-items: center;
-        margin-bottom: 20px;
+        gap: 15px;
+        margin-bottom: 30px;
       }
 
-      .tasks-list-header .badge {
-        background-color: var(--blue-light);
+      .badge {
+        background-color: var(--badge-blue);
         color: var(--text-light);
-        padding: 3px 8px;
+        padding: 6px 18px;
         border-radius: 50%;
-        font-size: 14px;
+        font-size: 18px;
         font-weight: 700;
-        margin-left: 10px;
+        min-width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
       }
 
-      /* Nội dung khi không có công việc */
+      /* Filter Buttons */
+      .filter-buttons {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+      }
+
+      .filter-btn {
+        padding: 10px 24px;
+        border: 2px solid var(--border-color);
+        background-color: white;
+        color: var(--text-dark);
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        transition: all 0.3s;
+      }
+
+      .filter-btn:hover {
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+      }
+
+      .filter-btn.active {
+        background: linear-gradient(135deg, #4361ee 0%, #5a7af8 100%);
+        color: white;
+        border-color: var(--primary-blue);
+      }
+
+      /* Task Items */
+      .task-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 18px 20px;
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        background-color: white;
+        transition: all 0.3s;
+      }
+
+      .task-item:hover {
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .task-item.completed {
+        background-color: #f8f9fa;
+        opacity: 0.7;
+      }
+
+      .task-checkbox {
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        accent-color: var(--primary-blue);
+      }
+
+      .task-content {
+        flex-grow: 1;
+      }
+
+      .task-title {
+        font-size: 17px;
+        color: var(--text-dark);
+        font-weight: 500;
+        line-height: 1.5;
+      }
+
+      .task-item.completed .task-title {
+        text-decoration: line-through;
+        color: #6c757d;
+      }
+
+      .task-meta {
+        font-size: 13px;
+        color: #6c757d;
+        margin-top: 5px;
+      }
+
+      /* Empty State */
       .empty-state {
         text-align: center;
-        color: #888;
-        padding: 50px 0;
+        padding: 80px 40px;
+        color: #adb5bd;
       }
 
-      .empty-state i {
-        font-size: 40px;
-        color: #ccc;
+      .empty-state-icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+      }
+
+      .empty-state-text {
+        font-size: 18px;
+        color: #6c757d;
+      }
+
+      /* Messages */
+      .message {
+        padding: 14px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+        font-weight: 500;
+      }
+
+      .message.show {
         display: block;
-        margin-bottom: 10px;
       }
 
-      /* Phần Footer */
+      .error-message {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .success-message {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      /* Loading */
+      .loading {
+        text-align: center;
+        padding: 60px;
+        color: var(--primary-blue);
+        font-size: 18px;
+      }
+
+      /* Footer */
       .footer {
         text-align: center;
-        padding: 15px;
-        border-top: 1px solid #eee;
-        color: #aaa;
-        font-size: 14px;
-        background-color: var(--bg-light);
+        padding: 25px;
+        background-color: #f8f9fa;
+        color: #6c757d;
+        font-size: 15px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .content {
+          padding: 25px;
+        }
+
+        .header h1 {
+          font-size: 28px;
+        }
+
+        .section-title {
+          font-size: 24px;
+        }
+
+        .form-group {
+          flex-direction: column;
+        }
+
+        .cluster-status {
+          flex-direction: column;
+          align-items: center;
+        }
       }
     </style>
   </head>
   <body>
     <div class="dashboard-container">
       <div class="header">
-        <h1>&#x2714; Danh Sách Công Việc</h1>
-        <div class="node-info">
-          <span>&#9889;</span>
-          Node Chính:
-          <a
-            href="http://127.0.0.1:4000"
-            style="color: white; text-decoration: none; margin-left: 5px"
-            >http://127.0.0.1:4000</a
-          >
+        <h1>Danh Sách Công Việc</h1>
+        <div class="cluster-status">
+          <div class="node-info" id="currentNodeDisplay">
+            <span class="status-indicator online" id="nodeStatus"></span>
+            <span
+              >Node Chính:
+              <strong id="nodeUrl">http://127.0.0.1:4000</strong></span
+            >
+          </div>
         </div>
       </div>
 
+      <div class="failover-alert" id="failoverAlert">
+        <span id="failoverMessage">Đang chuyển sang Node Phụ...</span>
+      </div>
+
       <div class="content">
+        <div class="error-message message" id="errorMessage"></div>
+        <div class="success-message message" id="successMessage"></div>
+
         <h2 class="section-title">Thêm Công Việc</h2>
         <div class="form-group">
           <input
             type="text"
             class="input-text"
+            id="taskInput"
             placeholder="Tên công việc..."
+            onkeypress="handleKeyPress(event)"
           />
-          <button class="btn btn-primary btn-add"><span>+</span> Thêm</button>
+          <button class="btn btn-primary" onclick="addTask()">Thêm</button>
         </div>
 
         <h2 class="section-title">Thêm Nhiều Công Việc</h2>
         <textarea
           class="input-textarea"
+          id="bulkTaskInput"
           placeholder="Nhập mỗi công việc trên một dòng..."
         ></textarea>
-        <button
-          class="btn btn-primary"
-          style="width: 100%; margin-bottom: 30px"
-        >
-          <span>+</span> Thêm Nhiều Công Việc
+        <button class="btn btn-primary btn-full" onclick="addBulkTasks()">
+          Thêm Nhiều Công Việc
         </button>
 
         <div class="tasks-list-header">
-          <h2 class="section-title" style="margin: 0; border: none">
+          <h2 class="section-title" style="margin: 0; border: none; padding: 0">
             Danh Sách Công Việc
           </h2>
-          <div class="badge">0</div>
+          <div class="badge" id="taskCount">0</div>
         </div>
 
-        <div class="empty-state">
-          <i style="font-style: normal">&#128193;</i>
-          Chưa có công việc nào. Hãy thêm công việc mới!
+        <div class="filter-buttons">
+          <button class="filter-btn active" onclick="filterTasks('all', event)">
+            Tất Cả
+          </button>
+          <button class="filter-btn" onclick="filterTasks('active', event)">
+            Đang Làm
+          </button>
+          <button class="filter-btn" onclick="filterTasks('completed', event)">
+            Đã Hoàn Thành
+          </button>
+          <button
+            class="btn btn-danger"
+            onclick="clearCompleted()"
+            style="margin-left: auto"
+          >
+            Xóa Đã Hoàn Thành
+          </button>
+        </div>
+
+        <div id="tasksList">
+          <div class="loading">Đang tải công việc...</div>
         </div>
       </div>
 
-      <div class="footer">PupDB Todo List © 2025</div>
+      <div class="footer">
+        PickleDB Todo List © 2025 | Distributed Replication System
+      </div>
     </div>
+
     <script>
-      const portsToCheck = [4000, 4001];
-      let apiBase = null;
-      let currentLeader = null;
+      // Cấu hình Nodes
+      const NODES = {
+        primary: "http://127.0.0.1:4000",
+        secondary: "http://127.0.0.1:4001",
+      };
 
-      async function findAliveNode() {
-        for (let port of portsToCheck) {
-          try {
-            const res = await fetch(`http://127.0.0.1:${port}/status`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.leader) {
-                apiBase = `http://127.0.0.1:${port}`;
-                currentLeader = data.leader;
-                updateLeaderDisplay();
-                return;
-              }
-            }
-          } catch (e) {}
+      let currentNode = NODES.primary;
+      let tasks = [];
+      let currentFilter = "all";
+      let isFailover = false;
+      let healthCheckInterval;
+
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeApp();
+      });
+
+      async function initializeApp() {
+        await checkNodeHealth();
+        await loadTasks();
+        startHealthCheck();
+      }
+
+      // Kiểm tra sức khỏe của nodes
+      async function checkNodeHealth() {
+        const primaryStatus = await checkNode(NODES.primary);
+        const secondaryStatus = await checkNode(NODES.secondary);
+
+        // Tự động failover nếu primary die
+        if (
+          !primaryStatus &&
+          secondaryStatus &&
+          currentNode === NODES.primary
+        ) {
+          await performFailover();
+        } else if (primaryStatus && currentNode === NODES.secondary) {
+          // Failback về primary khi nó hoạt động lại
+          await performFailback();
         }
-        document.querySelector(".node-info a").textContent =
-          "Không kết nối được!";
+
+        updateCurrentNodeUI();
+        return { primaryStatus, secondaryStatus };
       }
 
-      function updateLeaderDisplay() {
-        const nodeLink = document.querySelector(".node-info a");
-        nodeLink.href = currentLeader;
-        nodeLink.textContent = currentLeader;
-      }
-
-      async function refreshLeader() {
-        if (!apiBase) return findAliveNode();
+      async function checkNode(url) {
         try {
-          const res = await fetch(`${apiBase}/status`);
-          const data = await res.json();
-          if (data.leader !== currentLeader) {
-            currentLeader = data.leader;
-            updateLeaderDisplay();
-          }
-        } catch {
-          apiBase = null;
-          findAliveNode();
+          const response = await fetch(`${url}/status`, {
+            method: "GET",
+            signal: AbortSignal.timeout(2000),
+          });
+          const data = await response.json();
+          return data.status !== undefined || data.is_leader !== undefined;
+        } catch (error) {
+          return false;
         }
       }
 
-      async function loadJobs() {
-        if (!apiBase) return;
-        const res = await fetch(`${apiBase}/jobs`);
-        const jobs = await res.json();
-        const list = document.querySelector(".empty-state");
-        if (Object.keys(jobs).length === 0) {
-          list.innerHTML = "Chưa có công việc nào. Hãy thêm công việc mới!";
+      function updateCurrentNodeUI() {
+        const nodeUrlEl = document.getElementById("nodeUrl");
+        const statusEl = document.getElementById("nodeStatus");
+        const displayEl = document.getElementById("currentNodeDisplay");
+
+        nodeUrlEl.textContent = currentNode;
+
+        if (currentNode === NODES.primary) {
+          displayEl.classList.remove("standby", "active");
+          displayEl.style.backgroundColor = "var(--primary-red)";
         } else {
-          list.innerHTML = Object.entries(jobs)
-            .map(([k, v]) => `<div>${k} - ${v}</div>`)
-            .join("");
+          displayEl.classList.add("active");
+          displayEl.style.backgroundColor = "var(--primary-green)";
         }
       }
 
-      async function addJob() {
-        const input = document.querySelector(".input-text");
-        const job = input.value.trim();
-        if (!job || !apiBase)
-          return alert("Vui lòng nhập công việc hoặc chờ node!");
-        await fetch(`${apiBase}/set`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: job, value: "pending" }),
-        });
-        input.value = "";
-        loadJobs();
+      async function performFailover() {
+        console.log("🔄 Performing failover to secondary node...");
+        isFailover = true;
+        currentNode = NODES.secondary;
+
+        // Redirect sang port 4001
+        const currentPort = window.location.port;
+        if (currentPort === "4000") {
+          console.log("🔄 Redirecting to port 4001...");
+          window.location.href = "http://127.0.0.1:4001/";
+          return;
+        }
+
+        // Show failover alert
+        const alertEl = document.getElementById("failoverAlert");
+        const messageEl = document.getElementById("failoverMessage");
+        messageEl.textContent =
+          "⚠️ Node Chính (4000) không khả dụng! Đã chuyển sang Node Phụ (4001)";
+        alertEl.classList.add("show");
+
+        // Update UI
+        updateCurrentNodeUI();
+        await loadTasks();
+
+        setTimeout(() => {
+          alertEl.classList.remove("show");
+        }, 5000);
       }
 
-      document.querySelector(".btn-add").onclick = addJob;
-      setInterval(refreshLeader, 3000);
-      setInterval(loadJobs, 4000);
-      findAliveNode();
+      async function performFailback() {
+        console.log("✅ Performing failback to primary node...");
+        isFailover = false;
+        currentNode = NODES.primary;
+
+        // Redirect về port 4000 nếu đang ở port 4001
+        const currentPort = window.location.port;
+        if (currentPort === "4001") {
+          console.log("✅ Redirecting back to port 4000...");
+          window.location.href = "http://127.0.0.1:4000/";
+          return;
+        }
+
+        // Show failback notification
+        const alertEl = document.getElementById("failoverAlert");
+        const messageEl = document.getElementById("failoverMessage");
+        messageEl.textContent = "✅ Node Chính (4000) đã hoạt động trở lại!";
+        alertEl.classList.add("show");
+        alertEl.style.backgroundColor = "#d4edda";
+        alertEl.style.borderColor = "#c3e6cb";
+        alertEl.style.color = "#155724";
+
+        // Update UI
+        updateCurrentNodeUI();
+        await loadTasks();
+
+        setTimeout(() => {
+          alertEl.classList.remove("show");
+          alertEl.style.backgroundColor = "";
+          alertEl.style.borderColor = "";
+          alertEl.style.color = "";
+        }, 5000);
+      }
+
+      function startHealthCheck() {
+        // Kiểm tra sức khỏe mỗi 5 giây
+        healthCheckInterval = setInterval(async () => {
+          await checkNodeHealth();
+        }, 5000);
+      }
+
+      function handleKeyPress(event) {
+        if (event.key === "Enter") {
+          addTask();
+        }
+      }
+
+      function showMessage(message, type = "success") {
+        const element = document.getElementById(type + "Message");
+        element.textContent = message;
+        element.classList.add("show");
+        setTimeout(() => {
+          element.classList.remove("show");
+        }, 3000);
+      }
+
+      async function apiRequest(endpoint, options = {}) {
+        try {
+          const response = await fetch(`${currentNode}${endpoint}`, {
+            ...options,
+            signal: AbortSignal.timeout(5000),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          return await response.json();
+        } catch (error) {
+          console.error(`Request failed on ${currentNode}:`, error);
+
+          // Thử failover nếu request thất bại
+          if (currentNode === NODES.primary) {
+            const secondaryOnline = await checkNode(NODES.secondary);
+            if (secondaryOnline) {
+              await performFailover();
+              // Retry request on secondary
+              const response = await fetch(
+                `${currentNode}${endpoint}`,
+                options
+              );
+              return await response.json();
+            }
+          }
+
+          throw error;
+        }
+      }
+
+      async function loadTasks() {
+        try {
+          const data = await apiRequest("/tasks");
+          tasks = data.tasks || [];
+          renderTasks();
+        } catch (error) {
+          console.error("Lỗi tải tasks:", error);
+          document.getElementById("tasksList").innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Không thể kết nối đến bất kỳ node nào</div></div>';
+        }
+      }
+
+      function renderTasks() {
+        const container = document.getElementById("tasksList");
+        let filteredTasks = tasks;
+
+        if (currentFilter === "active") {
+          filteredTasks = tasks.filter((t) => !t.completed);
+        } else if (currentFilter === "completed") {
+          filteredTasks = tasks.filter((t) => t.completed);
+        }
+
+        document.getElementById("taskCount").textContent = tasks.length;
+
+        if (filteredTasks.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📂</div>
+              <div class="empty-state-text">Chưa có công việc nào. Hãy thêm công việc mới!</div>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = filteredTasks
+          .map(
+            (task) => `
+          <div class="task-item ${
+            task.completed ? "completed" : ""
+          }" data-id="${task.id}">
+            <input 
+              type="checkbox" 
+              class="task-checkbox" 
+              ${task.completed ? "checked" : ""} 
+              onchange="toggleTask('${task.id}')"
+            />
+            <div class="task-content">
+              <div class="task-title">${escapeHtml(task.title)}</div>
+              <div class="task-meta">ID: ${task.id} | ${new Date(
+              task.created_at
+            ).toLocaleString("vi-VN")}</div>
+            </div>
+            <button class="btn btn-danger" onclick="deleteTask('${task.id}')">
+              Xóa
+            </button>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      async function addTask() {
+        const input = document.getElementById("taskInput");
+        const title = input.value.trim();
+
+        if (!title) {
+          showMessage("Vui lòng nhập tên công việc!", "error");
+          return;
+        }
+
+        try {
+          await apiRequest("/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title }),
+          });
+
+          input.value = "";
+          showMessage("Đã thêm công việc thành công!");
+          await loadTasks();
+        } catch (error) {
+          showMessage("Lỗi khi thêm công việc!", "error");
+        }
+      }
+
+      async function addBulkTasks() {
+        const input = document.getElementById("bulkTaskInput");
+        const lines = input.value.split("\n").filter((line) => line.trim());
+
+        if (lines.length === 0) {
+          showMessage("Vui lòng nhập ít nhất một công việc!", "error");
+          return;
+        }
+
+        try {
+          const promises = lines.map((title) =>
+            apiRequest("/tasks", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: title.trim() }),
+            })
+          );
+
+          await Promise.all(promises);
+          input.value = "";
+          showMessage(`Đã thêm ${lines.length} công việc thành công!`);
+          await loadTasks();
+        } catch (error) {
+          showMessage("Lỗi khi thêm nhiều công việc!", "error");
+        }
+      }
+
+      async function toggleTask(id) {
+        const task = tasks.find((t) => t.id === id);
+        if (!task) return;
+
+        try {
+          await apiRequest(`/tasks/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ completed: !task.completed }),
+          });
+
+          await loadTasks();
+        } catch (error) {
+          showMessage("Lỗi khi cập nhật công việc!", "error");
+          await loadTasks();
+        }
+      }
+
+      async function deleteTask(id) {
+        if (!confirm("Bạn có chắc muốn xóa công việc này?")) return;
+
+        try {
+          await apiRequest(`/tasks/${id}`, {
+            method: "DELETE",
+          });
+
+          showMessage("Đã xóa công việc!");
+          await loadTasks();
+        } catch (error) {
+          showMessage("Lỗi khi xóa công việc!", "error");
+        }
+      }
+
+      async function clearCompleted() {
+        const completedTasks = tasks.filter((t) => t.completed);
+        if (completedTasks.length === 0) {
+          showMessage("Không có công việc đã hoàn thành để xóa!", "error");
+          return;
+        }
+
+        if (
+          !confirm(
+            `Bạn có chắc muốn xóa ${completedTasks.length} công việc đã hoàn thành?`
+          )
+        )
+          return;
+
+        try {
+          const promises = completedTasks.map((task) =>
+            apiRequest(`/tasks/${task.id}`, { method: "DELETE" })
+          );
+
+          await Promise.all(promises);
+          showMessage(`Đã xóa ${completedTasks.length} công việc!`);
+          await loadTasks();
+        } catch (error) {
+          showMessage("Lỗi khi xóa công việc!", "error");
+        }
+      }
+
+      function filterTasks(filter, event) {
+        currentFilter = filter;
+
+        document.querySelectorAll(".filter-btn").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+
+        if (event && event.target) {
+          event.target.classList.add("active");
+        }
+
+        renderTasks();
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        if (healthCheckInterval) {
+          clearInterval(healthCheckInterval);
+        }
+      });
     </script>
   </body>
 </html>
