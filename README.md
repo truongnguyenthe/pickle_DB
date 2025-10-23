@@ -1,615 +1,320 @@
-# 🗄️ PickleDB Distributed System
+# PickleDB Distributed Todo System
 
-**Hệ thống cơ sở dữ liệu phân tán sử dụng PickleDB với Replication và Leader Election**
+PickleDB Distributed Todo System là một ứng dụng quản lý công việc phân tán giúp người dùng dễ dàng thêm, sửa và xóa các nhiệm vụ trong ngày. Ứng dụng sử dụng **Python**, **Flask**, **PickleDB** và **JavaScript** để tạo ra một hệ thống phân tán mạnh mẽ với khả năng chịu lỗi cao, đảm bảo dữ liệu luôn an toàn và có thể truy cập ngay cả khi có nodes gặp sự cố.
 
----
+## Mục đích
 
-## 📖 Giới thiệu
+PickleDB Distributed Todo System được thiết kế để giúp người dùng tổ chức công việc một cách hiệu quả trong môi trường phân tán. Hệ thống không chỉ đơn thuần là một ứng dụng quản lý công việc mà còn là một công cụ học tập về các khái niệm cơ bản trong **Hệ thống phân tán** như sao lưu dữ liệu tự động, bầu chọn node chính, và tự động phục hồi khi có lỗi. Ứng dụng giúp giảm bớt sự phức tạp trong việc quản lý công việc, đồng thời đảm bảo tính sẵn sàng cao (High Availability) và độ tin cậy của dữ liệu trong môi trường distributed.
 
-**PickleDB Distributed System** là một hệ thống quản lý công việc (Todo List) phân tán được xây dựng trên nền tảng PickleDB - một cơ sở dữ liệu key-value nhẹ cho Python. Hệ thống triển khai các tính năng quan trọng của database phân tán như **Data Replication**, **Leader Election**, và **Automatic Failover** để đảm bảo tính sẵn sàng cao (High Availability) và độ tin cậy của dữ liệu.
+## Các tính năng chính
 
-### 🎯 Mục tiêu dự án
+- **Thêm công việc**: Cho phép người dùng thêm các nhiệm vụ vào danh sách công việc, dữ liệu được lưu vào PickleDB và tự động replicate sang các nodes khác.
+- **Chỉnh sửa công việc**: Người dùng có thể chỉnh sửa thông tin của nhiệm vụ đã được thêm vào, thay đổi được đồng bộ tự động trên toàn bộ cluster.
+- **Xóa công việc**: Cho phép người dùng xóa nhiệm vụ đơn lẻ hoặc hàng loạt khi đã hoàn thành hoặc không còn cần thiết.
+- **Giao diện người dùng hiện đại**: Với giao diện responsive và trực quan, người dùng có thể nhanh chóng quản lý công việc và giám sát trạng thái cluster real-time.
+- **Replication (Sao chép dữ liệu)**: Đồng bộ hóa dữ liệu tự động giữa các nodes trong cluster (Leader → Followers), đảm bảo mọi thay đổi được backup ngay lập tức. Khi Leader thêm/sửa/xóa task, dữ liệu được replicate sang tất cả Followers trong vòng 2 giây.
+- **Batch Processing (Xử lý hàng loạt)**: Cho phép người dùng thêm nhiều nhiệm vụ cùng một lúc bằng textarea multiline, hoặc xóa tất cả nhiệm vụ đã hoàn thành chỉ với một click, giúp tiết kiệm thời gian và nâng cao hiệu suất làm việc.
+- **Leader Election (Bầu chọn node chính)**: Trong môi trường phân tán, hệ thống tự động xác định một node làm "Leader" để xử lý tất cả write operations. Khi Leader die, hệ thống tự động bầu Leader mới (node có port nhỏ nhất còn sống) trong vòng 5-8 giây, đảm bảo tính liên tục của dịch vụ.
 
-- Tìm hiểu và triển khai các khái niệm cơ bản về hệ thống phân tán
-- Xây dựng cơ chế đồng bộ dữ liệu giữa nhiều nodes
-- Triển khai thuật toán Leader Election để chọn node chính
-- Đảm bảo tính nhất quán của dữ liệu trong môi trường phân tán
-- Xây dựng giao diện web trực quan để quản lý và giám sát cluster
+## Công nghệ sử dụng
 
----
+- **Python**: Ngôn ngữ lập trình chính, mạnh mẽ và dễ học, phù hợp cho việc xây dựng hệ thống phân tán.
+- **Flask**: Web framework nhẹ và linh hoạt cho Python, giúp xây dựng REST API một cách nhanh chóng và hiệu quả.
+- **PickleDB**: Cơ sở dữ liệu key-value lightweight với persistent storage, lưu trữ các nhiệm vụ dưới dạng cặp khóa-giá trị và serialize bằng Python pickle.
+- **JavaScript**: Xử lý logic client-side, tương tác với REST API, và tự động failover khi phát hiện node die.
+- **HTML/CSS**: Xây dựng giao diện người dùng hiện đại với gradient background, animations, và responsive design.
 
-## ✨ Tính năng chính
+## Các thành viên nhóm 👥
 
-### 1. 🗄️ PickleDB - Persistent Key-Value Storage
+- **Nguyễn Thế Trường** - Mã số sinh viên 22010212
+- **Nguyễn Thế Trường An** - Mã số sinh viên 22010253
 
-PickleDB là một cơ sở dữ liệu key-value đơn giản được thiết kế cho Python, sử dụng module `pickle` để serialize và lưu trữ dữ liệu vào file.
+## Cài đặt và sử dụng
 
-**Đặc điểm:**
+1.  **Clone repo**:  
+    Clone repository về máy của bạn bằng lệnh sau:
 
-- **Persistent Storage**: Dữ liệu được lưu vĩnh viễn vào file `.db`
-- **Auto-dump**: Tự động ghi dữ liệu xuống disk sau mỗi thao tác
-- **Key-Value Model**: Lưu trữ dữ liệu dưới dạng cặp key-value
-- **Python Native**: Hoạt động native với Python, không cần cài đặt database server
+    ```bash
+    git clone https://github.com/truongnguyenthe/pickle_DB.git
+    ```
 
-**Cách hoạt động trong hệ thống:**
+2.  **Chuyển đến thư mục dự án**:  
+    Di chuyển vào thư mục dự án đã clone:
 
-- Mỗi node có một file database riêng: `node_4000.db`, `node_4001.db`, `node_4002.db`
-- Tasks được lưu với key format: `task_<uuid>` và value là JSON object
-- Dữ liệu được serialize bằng pickle và lưu persistent trên disk
+    ```bash
+    cd pickle_DB
+    ```
 
-### 2. 🔄 Replication - Sao lưu dữ liệu tự động
+3.  **(Tuỳ chọn) Tạo môi trường ảo Python**:
 
-**Replication** là quá trình sao chép dữ liệu từ node Leader sang các node Follower để đảm bảo tính nhất quán và sẵn sàng cao.
+    ```bash
+    python -m venv venv
+    venv\Scripts\activate # Windows
+    source venv/bin/activate # Linux/macOS
 
-**Cơ chế hoạt động:**
+    ```
 
-1. **Write Request**: Client gửi request tạo/sửa/xóa task đến Leader
-2. **Local Write**: Leader lưu dữ liệu vào database của mình
-3. **Replicate**: Leader gửi dữ liệu đến tất cả Followers qua HTTP POST `/replicate`
-4. **Follower Write**: Mỗi Follower nhận data và lưu vào database của mình
-5. **Acknowledgment**: Leader đợi phản hồi từ Followers (timeout 2s)
+4.  **Cài đặt các thư viện**:  
+    Cài đặt thư viện cho dự án:
 
-**Log replication trong terminal:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-```
---- Replication done at 14:30:45 PM
---- Start replicate at 14:30:45 PM
-Action: SET | Key: 'task_abc123'
-Replicated key='task_abc123' to http://127.0.0.1:4001 success.
-Replicated key='task_abc123' to http://127.0.0.1:4002 success.
-Replicated key='task_abc123' to http://127.0.0.1:4003 success.
---- Replication done at 14:30:45 PM
-Result: 2/2 followers synced successfully
-```
+5.  **Chạy các node Flask server**:  
+    Mỗi node tương ứng là một server Flask riêng biệt.
 
-**Ưu điểm:**
+    Mở 4 terminal riêng và chạy lần lượt:
 
-- ✅ Dữ liệu được backup trên nhiều nodes
-- ✅ Tăng khả năng chịu lỗi (fault tolerance)
-- ✅ Cho phép đọc dữ liệu từ bất kỳ node nào
-- ✅ Dữ liệu không bị mất khi một node die
+    Terminal 1 – Node Leader (port 4000):
 
-### 3. 👑 Leader Election - Bầu chọn node chính
+    ```bash
+    python -m examples.cluster
+    ```
 
-**Leader Election** là cơ chế tự động chọn một node làm Leader (node chính) để xử lý tất cả write operations.
+    Terminal 2 – Node Leader (port 4001):
 
-**Thuật toán:**
+    ```bash
+    python -m examples.follower1
+    ```
 
-```python
-1. Tất cả nodes bắt đầu như Follower
-2. Leader gửi heartbeat mỗi 2 giây
-3. Follower theo dõi heartbeat với timeout ngẫu nhiên 5-8 giây
-4. Nếu Follower không nhận heartbeat > timeout:
-   a. Trigger election
-   b. Kiểm tra health của tất cả nodes
-   c. Chọn node có port nhỏ nhất còn sống làm Leader
-   d. Leader mới bắt đầu gửi heartbeat
-```
+    Terminal 3 – Node Leader (port 4002):
 
-**Ví dụ quá trình election:**
+    ```bash
+    python -m examples.follower2
+    ```
 
-```
-======================================================================
-⚠️  [ELECTION] Leader timeout! No heartbeat for 5.2s
-🗳️  Node 4001 starting election (term 2)
-======================================================================
+    Terminal 4 – Node Leader (port 4003):
 
-[ELECTION] Checking health of all nodes...
-  ✗ Node 4000: DEAD (ConnectionError)
-  ✓ Node 4001: ALIVE
-  ✓ Node 4002: ALIVE
-  ✓ Node 4003: ALIVE
-
-======================================================================
-👑 Node 4001 elected as LEADER (term 2)
-📊 Followers: 1 nodes
-   1. http://127.0.0.1:4002
-======================================================================
-```
-
-**Đặc điểm:**
-
-- **Deterministic**: Luôn chọn node có port nhỏ nhất (tránh split-brain)
-- **Term-based**: Mỗi lần election tăng term để phát hiện stale leaders
-- **Random timeout**: Tránh nhiều nodes trigger election đồng thời
-- **Health check**: Chỉ chọn nodes còn sống
-
-### 4. 🔁 Automatic Failover - Chuyển đổi tự động
-
-**Failover** là quá trình tự động chuyển sang node backup khi node chính gặp sự cố.
-
-**Kịch bản:**
-
-**Khi Leader die:**
-
-1. Followers phát hiện mất heartbeat sau 5-8 giây
-2. Trigger leader election
-3. Node mới được chọn làm Leader
-4. Dashboard tự động redirect sang Leader mới
-5. Dữ liệu vẫn còn nguyên nhờ replication
-
-**Khi Leader cũ sống lại:**
-
-1. Node cũ join lại cluster như một Follower
-2. Nhận heartbeat từ Leader mới
-3. Dashboard có thể tự động failback về node cũ (nếu có priority)
-
-**Dashboard tự động redirect:**
-
-```javascript
-// Kiểm tra health mỗi 5 giây
-async function checkNodeHealth() {
-  if (primaryNodeDead && secondaryNodeAlive) {
-    // Tự động chuyển URL từ :4000 → :4001
-    window.location.href = "http://127.0.0.1:4001/";
-  }
-}
-```
-
-### 5. 💓 Heartbeat - Giám sát trạng thái
-
-**Heartbeat** là tín hiệu định kỳ giữa Leader và Followers để duy trì trạng thái cluster.
-
-**Cơ chế:**
-
-- Leader gửi HTTP GET `/heartbeat` đến tất cả Followers mỗi 2 giây
-- Follower nhận heartbeat và cập nhật `last_heartbeat` timestamp
-- Nếu Follower không nhận heartbeat > timeout → trigger election
-
-**Thông tin heartbeat:**
-
-```json
-{
-  "status": "alive",
-  "port": 4001,
-  "is_leader": false,
-  "current_leader": "http://127.0.0.1:4000",
-  "term": 1
-}
-```
-
----
-
-## 🏗️ Kiến trúc hệ thống
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLIENT / BROWSER                      │
-│                  (Dashboard - Port 5500)                     │
-└────────────────┬───────────────────────────┬─────────────────┘
-                 │ HTTP API                  │ HTTP API
-                 ▼                           ▼
-┌────────────────────────────┐  ┌──────────────────────────────┐
-│   NODE 4000 (LEADER)       │  │   NODE 4001 (FOLLOWER)       │
-│  ┌──────────────────────┐  │  │  ┌──────────────────────┐    │
-│  │  Flask API Server    │  │  │  │  Flask API Server    │    │
-│  │  - CRUD APIs         │  │  │  │  - Read APIs         │    │
-│  │  - Replication       │  │  │  │  - Receive Replicate │    │
-│  └──────────┬───────────┘  │  │  └──────────┬───────────┘    │
-│             │              │  │             │                │
-│  ┌──────────▼───────────┐  │  │  ┌──────────▼───────────┐    │
-│  │  Cluster Manager     │  │◄─┼──┤  Cluster Manager     │    │
-│  │  - Heartbeat Sender  │  │  │  │  - Heartbeat Monitor │    │
-│  │  - Leader Election   │  │  │  │  - Election Trigger  │    │
-│  └──────────┬───────────┘  │  │  └──────────┬───────────┘    │
-│             │              │  │             │                │
-│  ┌──────────▼───────────┐  │  │  ┌──────────▼───────────┐    │
-│  │   PickleDB           │  │  │  │   PickleDB           │    │
-│  │   node_4000.db       │  │  │  │   node_4001.db       │    │
-│  └──────────────────────┘  │  │  └──────────────────────┘    │
-└────────────────────────────┘  └──────────────────────────────┘
-                 │                           ▲
-                 │ Replication               │
-                 └───────────────────────────┘
-
-┌──────────────────────────────┐
-│   NODE 4002 (FOLLOWER)       │
-│  ┌──────────────────────┐    │
-│  │  Flask API Server    │    │
-│  │  - Read APIs         │    │
-│  │  - Receive Replicate │    │
-│  └──────────┬───────────┘    │
-│             │                │
-│  ┌──────────▼───────────┐    │
-│  │  Cluster Manager     │    │
-│  │  - Heartbeat Monitor │    │
-│  │  - Election Trigger  │    │
-│  └──────────┬───────────┘    │
-│             │                │
-│  ┌──────────▼───────────┐    │
-│  │   PickleDB           │    │
-│  │   node_4002.db       │    │
-│  └──────────────────────┘    │
-└──────────────────────────────┘
-```
-
----
-
-## 📦 Cài đặt
-
-### Yêu cầu hệ thống
-
-- **Python**: 3.7 trở lên
-- **Hệ điều hành**: Linux, macOS, hoặc Windows
-- **RAM**: Tối thiểu 512MB
-- **Disk**: 100MB trống
-
-### Các bước cài đặt
-
-**1. Clone repository:**
-
-```bash
-git clone https://github.com/truongnguyenthe/pickle_DB.git
-cd pickle_DB
-```
-
-**2. Cài đặt dependencies:**
-
-```bash
-pip install -r requirements.txt
-```
-
-Hoặc cài đặt thủ công:
-
-```bash
-pip install flask==3.0.0
-pip install flask-cors==4.0.0
-pip install pickledb==0.9.2
-pip install requests==2.31.0
-```
-
-**3. Tạo cấu trúc thư mục:**
-
-```bash
-mkdir -p logs
-mkdir -p src
-touch src/__init__.py
-```
-
-**4. Đảm bảo cấu trúc đúng:**
-
-```
-pickle_DB/
-├── src/
-│   ├── __init__.py
-│   ├── api_server.py
-│   └── cluster_manager.py
-├── examples/
-│   ├── culster.py
-│   ├── follower1.py
-│   ├── follower2.py
-│   └── follower3.py
-├── node_dashboard.html
-├── requirements.txt
-└── README.md
-```
-
----
-
-## 🚀 Hướng dẫn chạy
-
-### Cách 1: Chạy thủ công (Khuyến nghị cho development)
-
-**Terminal 1 - Node Leader (Port 4000):**
-
-```bash
-python -m examples.cluster
-```
-
-**Terminal 2 - Node Follower 1 (Port 4001):**
+    ```bash
+    python -m examples.follower3
+    ```
 
-```bash
-python -m examples.follower1
-```
+6.  **Kiểm tra API bằng Postman hoặc cURL**:
 
-**Terminal 3 - Node Follower 2 (Port 4002):**
+    ➤ **Tạo công việc mới** (chỉ gửi đến Leader - Port 4000)
 
-```bash
-python -m examples.follower2
-```
+    ```bash
+       POST http://127.0.0.1:4000/tasks
+    ```
 
-**Terminal 4 - Node Follower 3 (Port 4003):**
+    Body (JSON):
 
-```bash
-python -m examples.follower3
-```
-
-**Mở Dashboard:**
-
-```
-http://localhost:5500/node_dashboard.html
-```
-
----
-
-## 🧪 Hướng dẫn test
-
-### Test 1: Kiểm tra Replication
-
-**1. Thêm task từ Dashboard:**
-
-- Mở http://localhost:5500/node_dashboard.html
-- Thêm task: "Học Distributed Systems"
-
-**2. Kiểm tra terminal:**
-
-```
-Terminal 1 (4000):
---- Replication done at 14:30:45 PM
-Replicated to 4001 success.
-Replicated to 4002 success.
-Replicated to 4003 success.
-
-Terminal 2 (4001):
---- Replication received at 14:30:45 PM
-Saved key='task_xyz' to db.json
-
-Terminal 3 (4002):
---- Replication received at 14:30:45 PM
-Saved key='task_xyz' to db.json
-
-Terminal 4 (4003):
---- Replication received at 14:30:45 PM
-Saved key='task_xyz' to db.json
-```
-
-**3. Verify data:**
-
-```bash
-# Kiểm tra 3 nodes có cùng data
-curl http://127.0.0.1:4000/tasks
-curl http://127.0.0.1:4001/tasks
-curl http://127.0.0.1:4002/tasks
-curl http://127.0.0.1:4003/tasks
-```
-
-### Test 2: Kiểm tra Leader Election & Failover
-
-**1. Thêm tasks vào node 4000**
-
-**2. Kill node 4000:**
-
-```bash
-pkill -f examples.cluster.py
-```
-
-**3. Quan sát Terminal 2 (4001):**
-
-```
-[ELECTION] Leader timeout! No heartbeat for 5.2s
-👑 Node 4001 elected as LEADER (term 2)
-[HEARTBEAT] Node 4001 started sending heartbeat
-```
-
-**4. Dashboard tự động redirect:**
-
-- URL thay đổi từ `:4000` → `:4001`
-- Tasks vẫn hiển thị đầy đủ
-
-**5. Thêm task mới từ node 4001:**
-
-- Task được replicate sang node 4002
-
-**6. Khởi động lại node 4000:**
-
-```bash
-python -m examples.culster
-```
-
-- Node 4000 join lại như Follower
-- Node 4001 vẫn là Leader
-
-### Test 3: Test với Postman
-
-**Set key-value:**
-
-```
-POST http://127.0.0.1:4000/set
-Content-Type: application/json
-
-{
-  "key": "username",
-  "value": "Trường"
-}
-```
-
-**Get all data:**
-
-```
-GET http://127.0.0.1:4000/jobs
-```
-
-**Check cluster status:**
-
-```
-GET http://127.0.0.1:4000/status
-```
-
----
-
-## 🔧 API Documentation
-
-### Tasks Management
-
-#### GET /tasks
-
-Lấy danh sách tất cả tasks
-
-**Response:**
-
-```json
-{
-  "tasks": [
+    ```json
     {
-      "id": "abc-123",
-      "title": "Học Python",
-      "completed": false,
-      "created_at": "2025-01-20T10:30:00"
+      "title": "Học Distributed Systems"
     }
-  ]
-}
+    ```
+
+    ➤ **Thêm nhiều công việc** (Batch Processing)
+
+    Truy cập Dashboard tại `http://localhost:5500/node_dashboard.html` và sử dụng textarea "Thêm Nhiều Công Việc":
+
+    ```
+       Học Python
+       Làm đồ án
+       Ôn thi cuối kỳ
+    ```
+
+    Hoặc gọi API nhiều lần:
+
+    ```bash
+       POST http://127.0.0.1:4000/tasks
+       Body: {"title": "Task 1"}
+
+       POST http://127.0.0.1:4000/tasks
+       Body: {"title": "Task 2"}
+    ```
+
+    ➤ **Cập nhật công việc** (đánh dấu hoàn thành)
+
+    ```bash
+       PUT http://127.0.0.1:4000/tasks/<task_id>
+    ```
+
+    Body (JSON):
+
+    ```json
+    {
+      "completed": true
+    }
+    ```
+
+    ➤ **Xóa công việc**
+
+    ```bash
+       DELETE http://127.0.0.1:4000/tasks/<task_id>
+    ```
+
+    ➤ **Lấy danh sách tất cả công việc**
+
+    ```bash
+       GET http://127.0.0.1:4000/tasks
+    ```
+
+    **Lưu ý**: Tất cả các thao tác thêm/sửa/xóa chỉ được thực hiện trên **Leader node** (Port 4000). Nếu gửi request đến Follower, bạn sẽ nhận được thông báo lỗi:
+
+    ```json
+    {
+      "error": "not_leader",
+      "message": "Only leader can create tasks",
+      "leader": "http://127.0.0.1:4000"
+    }
+    ```
+
+7.  **Kiểm tra sao chép dữ liệu (Replication)**:
+
+    Sau khi thêm dữ liệu vào Leader (port 4000), dữ liệu sẽ được **replicate ngay lập tức** sang các node phụ (port 4001, 4002, 4003). Để kiểm tra:
+
+    **Cách 1: Kiểm tra qua API**
+
+    ```bash
+       # Lấy danh sách tasks từ Follower 1 (port 4001)
+       GET http://127.0.0.1:4001/tasks
+       # Lấy danh sách tasks từ Follower 2 (port 4002)
+       GET http://127.0.0.1:4002/tasks
+       # Lấy danh sách tasks từ Follower 3 (port 4003)
+       GET http://127.0.0.1:4003/tasks
+    ```
+
+    Kết quả: Cả 4 nodes (4000, 4001, 4002, 4003) sẽ có **cùng dữ liệu tasks**!
+
+    **Cách 2: Kiểm tra qua Dashboard**
+
+    - Mở `http://127.0.0.1:4000/` - Thêm task
+    - Mở `http://127.0.0.1:4001/` - Xem task đã được replicate
+    - Mở `http://127.0.0.1:4002/` - Xem task đã được replicate
+    - Mở `http://127.0.0.1:4003/` - Xem task đã được replicate
+
+    **Thời gian replicate**: Dữ liệu được đồng bộ **ngay lập tức** (< 2 giây), đảm bảo rằng mọi thay đổi trên Leader đều được backup tự động trên tất cả Followers.
+
+8.  **Truy cập Dashboard**:
+
+    Mở trình duyệt và nhập `http://localhost:5500/node_dashboard.html` để sử dụng giao diện web quản lý công việc với các tính năng:
+
+    - Thêm công việc đơn lẻ hoặc hàng loạt
+    - Đánh dấu hoàn thành
+    - Xóa công việc
+    - Lọc công việc (Tất cả / Đang làm / Đã hoàn thành)
+    - Xem trạng thái cluster real-time
+
+## Các API Endpoint 📡
+
+### **GET /tasks**
+
+- **Mô tả**: Lấy tất cả các tasks từ database.
+- **Phương thức**: GET
+- **Response**: Trả về danh sách tasks được sắp xếp theo thời gian tạo (mới nhất trước).
+- **Ví dụ**:
+
+```bash
+  curl -XGET http://localhost:4000/tasks
 ```
 
-#### POST /tasks
+### **POST /tasks**
 
-Tạo task mới (chỉ Leader)
+- **Mô tả**: Tạo task mới. Chỉ leader mới có quyền ghi dữ liệu. Nếu node không phải leader, sẽ trả về thông tin leader hiện tại.
+- **Phương thức**: POST
+- **Body**: `{"title": "Task title"}`
+- **Response**: Trả về task vừa tạo hoặc thông báo lỗi nếu không phải leader.
+- **Ví dụ**:
 
-**Request:**
-
-```json
-{
-  "title": "Học Distributed Systems"
-}
+```bash
+  curl -XPOST http://localhost:4000/tasks -H 'Content-Type: application/json' -d '{"title": "New task"}'
 ```
 
-**Response:**
+### **PUT /tasks/:task_id**
 
-```json
-{
-  "id": "xyz-789",
-  "title": "Học Distributed Systems",
-  "completed": false,
-  "created_at": "2025-01-20T10:35:00"
-}
+- **Mô tả**: Cập nhật thông tin task (title hoặc completed status). Chỉ leader mới có quyền thực hiện.
+- **Phương thức**: PUT
+- **Body**: `{"title": "Updated title", "completed": true}`
+- **Response**: Trả về task đã cập nhật hoặc thông báo lỗi.
+- **Ví dụ**:
+
+```bash
+  curl -XPUT http://localhost:4000/tasks/your-task-id -H 'Content-Type: application/json' -d '{"completed": true}'
 ```
 
-#### PUT /tasks/:id
+### **DELETE /tasks/:task_id**
 
-Cập nhật task (chỉ Leader)
+- **Mô tả**: Xóa một task khỏi database. Chỉ leader mới có quyền thực hiện.
+- **Phương thức**: DELETE
+- **Response**: Trả về status "deleted" hoặc thông báo lỗi.
+- **Ví dụ**:
 
-**Request:**
-
-```json
-{
-  "completed": true
-}
+```bash
+  curl -XDELETE http://localhost:4000/tasks/your-task-id
 ```
 
-#### DELETE /tasks/:id
+### **POST /replicate**
 
-Xóa task (chỉ Leader)
+- **Mô tả**: Nhận dữ liệu replicate từ leader. API nội bộ dùng để đồng bộ dữ liệu giữa các nodes.
+- **Phương thức**: POST
+- **Body**: `{"key": "task_id", "value": {...}}`
+- **Response**: Trả về status "replicated".
+- **Ví dụ**:
 
-### Cluster Management
-
-#### GET /health
-
-Health check cho leader election
-
-```json
-{
-  "status": "ok",
-  "port": 4000,
-  "is_leader": true,
-  "term": 1
-}
+```bash
+  curl -XPOST http://localhost:4000/replicate -H 'Content-Type: application/json' -d '{"key": "task_123", "value": {"title": "Task"}}'
 ```
 
-#### GET /status
+### **GET /heartbeat**
 
-Trạng thái chi tiết của node
+- **Mô tả**: Nhận heartbeat từ leader để duy trì kết nối và xác nhận trạng thái cluster.
+- **Phương thức**: GET
+- **Response**: Trả về thông tin heartbeat.
+- **Ví dụ**:
 
-```json
-{
-  "port": 4000,
-  "is_leader": true,
-  "current_leader": "http://127.0.0.1:4000",
-  "term": 1,
-  "peers": [
-    "http://127.0.0.1:4001",
-    "http://127.0.0.1:4002",
-    "http://127.0.0.1:4003"
-  ],
-  "last_heartbeat": 1705750800.123
-}
+```bash
+  curl -XGET http://localhost:4000/heartbeat
 ```
 
-#### GET /heartbeat
+### **GET /status**
 
-Nhận heartbeat từ Leader
+- **Mô tả**: Trả về trạng thái của node hiện tại (leader hay follower, port, last heartbeat).
+- **Phương thức**: GET
+- **Response**: `{"leader": "...", "is_leader": true/false, "port": 5000, "last_heartbeat": ...}`
+- **Ví dụ**:
 
-#### POST /replicate
-
-Nhận data replication từ Leader (internal)
-
-### Legacy Key-Value API
-
-#### POST /set
-
-Set key-value pair
-
-```json
-{
-  "key": "name",
-  "value": "Trường"
-}
+```bash
+  curl -XGET http://localhost:4000/status
 ```
 
-#### GET /jobs
+### **GET /health**
 
-Lấy tất cả key-value pairs
+- **Mô tả**: Health check endpoint để kiểm tra node có hoạt động không.
+- **Phương thức**: GET
+- **Response**: `{"status": "ok", "port": 4000, "is_leader": true/false}`
+- **Ví dụ**:
+
+```bash
+  curl -XGET http://localhost:4000/health
+```
+
+### **GET /cluster/status**
+
+- **Mô tả**: Trả về thông tin toàn bộ cluster (leader, followers, node hiện tại).
+- **Phương thức**: GET
+- **Response**: `{"leader": "...", "followers": [...], "current_node": "...", "is_leader": true/false}`
+- **Ví dụ**:
+
+```bash
+  curl -XGET http://localhost:4000/cluster/status
+```
+
+### **GET /**
+
+- **Mô tả**: Trả về dashboard HTML để quản lý tasks qua giao diện web.
+- **Phương thức**: GET
+- **Ví dụ**: Truy cập `http://localhost:4000/` trên trình duyệt.
 
 ---
 
-## 📊 Monitoring & Troubleshooting
+## 💬 Lời cảm ơn
 
-### Xem logs realtime
+Cảm ơn bạn đã tham gia và sử dụng **PickleDB Distributed Todo System**!  
+Ứng dụng được phát triển với mục tiêu **đơn giản hóa việc quản lý công việc hằng ngày**, giúp người dùng dễ dàng theo dõi và đồng bộ nhiệm vụ trên nhiều node khác nhau.
 
-```bash
-# Node 4000
-tail -f logs/node_4000.log
-
-# Node 4001
-tail -f logs/node_4001.log
-
-# Tất cả nodes
-tail -f logs/node_*.log
-```
-
-### Kiểm tra ports đang sử dụng
-
-```bash
-# Linux/Mac
-lsof -i :4000
-lsof -i :4001
-lsof -i :4002
-
-# Windows
-netstat -ano | findstr :4000
-```
-
-### Giải phóng ports
-
-```bash
-# Linux/Mac
-lsof -ti:4000 | xargs kill -9
-lsof -ti:4001 | xargs kill -9
-lsof -ti:4002 | xargs kill -9
-
-# Windows
-taskkill /PID <PID> /F
-```
-
-## 👥 Thành viên nhóm
-
-| STT | Họ và Tên            | MSSV     |
-| --- | -------------------- | -------- |
-| 1   | Nguyễn Thế Trường    | 22010212 |
-| 2   | Nguyễn Thế Trường An | 22010253 |
+Hệ thống **Flask + PickleDB** không chỉ mang lại trải nghiệm mượt mà mà còn minh họa cách xây dựng một **môi trường phân tán có khả năng tự bầu leader, tự đồng bộ dữ liệu và tự phục hồi khi gặp sự cố**.
 
 ---
-
-## 🎓 Kiến thức áp dụng
-
-### Công nghệ
-
-- **Backend**: Python, Flask, PickleDB
-- **Frontend**: HTML, CSS, JavaScript
-- **Protocol**: HTTP/REST API
-- **Serialization**: Pickle, JSON
-
-### Kỹ năng
-
-- Thiết kế hệ thống phân tán
-- Xử lý đồng bộ dữ liệu
-- Xử lý lỗi và recovery
-- API design và documentation

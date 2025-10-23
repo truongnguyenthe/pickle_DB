@@ -16,7 +16,7 @@ if __name__ == "__main__":
     PEERS = [n for n in ALL_NODES if f":{PORT}" not in n]
 
     print("=" * 60)
-    print("PICKLEDB CLUSTER - NODE FOLLOWER 4003")
+    print("PICKLEDB CLUSTER - NODE FOLLOWER 4002")
     print("=" * 60)
     print(f" Port: {PORT}")
     print(f" Peers: {PEERS}")
