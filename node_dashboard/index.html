@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Danh Sách Công Việc - PickleDB</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="header">
+        <h1>Danh Sách Công Việc</h1>
+        <div class="cluster-status">
+          <div class="node-info" id="currentNodeDisplay">
+            <span class="status-indicator online" id="nodeStatus"></span>
+            <span
+              >Node Chính:
+              <strong id="nodeUrl">http://127.0.0.1:4000</strong></span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="failover-alert" id="failoverAlert">
+        <span id="failoverMessage">Đang chuyển sang Node Phụ...</span>
+      </div>
+
+      <div class="content">
+        <div class="error-message message" id="errorMessage"></div>
+        <div class="success-message message" id="successMessage"></div>
+
+        <h2 class="section-title">Thêm Công Việc</h2>
+        <div class="form-group">
+          <input
+            type="text"
+            class="input-text"
+            id="taskInput"
+            placeholder="Tên công việc..."
+            onkeypress="handleKeyPress(event)"
+          />
+          <button class="btn btn-primary" onclick="addTask()">Thêm</button>
+        </div>
+
+        <h2 class="section-title">Thêm Nhiều Công Việc</h2>
+        <textarea
+          class="input-textarea"
+          id="bulkTaskInput"
+          placeholder="Nhập mỗi công việc trên một dòng..."
+        ></textarea>
+        <button class="btn btn-primary btn-full" onclick="addBulkTasks()">
+          Thêm Nhiều Công Việc
+        </button>
+
+        <div class="tasks-list-header">
+          <h2 class="section-title" style="margin: 0; border: none; padding: 0">
+            Danh Sách Công Việc
+          </h2>
+          <div class="badge" id="taskCount">0</div>
+        </div>
+
+        <div class="filter-buttons">
+          <button class="filter-btn active" onclick="filterTasks('all', event)">
+            Tất Cả
+          </button>
+          <button class="filter-btn" onclick="filterTasks('active', event)">
+            Đang Làm
+          </button>
+          <button class="filter-btn" onclick="filterTasks('completed', event)">
+            Đã Hoàn Thành
+          </button>
+          <button
+            class="btn btn-danger"
+            onclick="clearAllTasks()"
+            style="margin-left: auto"
+          >
+            Xóa Tất Cả
+          </button>
+        </div>
+
+        <div id="tasksList">
+          <div class="loading">Đang tải công việc...</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        PickleDB Todo List © 2025 | Distributed Replication System
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

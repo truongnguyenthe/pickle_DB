@@ -108,7 +108,7 @@ PickleDB Distributed Todo System được thiết kế để giúp người dùn
 
     ➤ **Thêm nhiều công việc** (Batch Processing)
 
-    Truy cập Dashboard tại `http://localhost:5500/node_dashboard.html` và sử dụng textarea "Thêm Nhiều Công Việc":
+    Truy cập Dashboard tại `http://localhost:5500/node_dashboard/index.html` và sử dụng textarea "Thêm Nhiều Công Việc":
 
     ```
        Học Python
@@ -190,7 +190,7 @@ PickleDB Distributed Todo System được thiết kế để giúp người dùn
 
 8.  **Truy cập Dashboard**:
 
-    Mở trình duyệt và nhập `http://localhost:5500/node_dashboard.html` để sử dụng giao diện web quản lý công việc với các tính năng:
+    Mở trình duyệt và nhập `http://localhost:5500/node_dashboard/index.html` để sử dụng giao diện web quản lý công việc với các tính năng:
 
     - Thêm công việc đơn lẻ hoặc hàng loạt
     - Đánh dấu hoàn thành
